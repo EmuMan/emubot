@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using EmuBot.Models;
 
@@ -26,9 +27,10 @@ namespace EmuBot.Modules
         [EnabledInDm(false)]
         [RequireOwner]
         [SlashCommand("add-rr", "Adds a reaction role to a message")]
-        public async Task AddRR([Summary(description: "message ID to track")] string messageId,
-                               [Summary(description: "the emote/emoji to link to")] string emote,
-                               [Summary(description: "the role to assign")] IRole role)
+        public async Task AddRR([Summary(description: "the channel the message is in")] ITextChannel channel,
+                                [Summary(description: "message ID to track")] string messageId,
+                                [Summary(description: "the emote/emoji to link to")] string emote,
+                                [Summary(description: "the role to assign")] IRole role)
         {
             ulong msgId;
             if (!ulong.TryParse(messageId, out msgId))
@@ -36,28 +38,35 @@ namespace EmuBot.Modules
                 await RespondAsync("Please pass a valid integer as the message ID.");
                 return;
             }
+            IMessage? msg = await channel.GetMessageAsync(msgId);
+            if (msg is null)
+            {
+                await RespondAsync("Could not find that message in the specified channel!");
+                return;
+            }
             IEmote? e = GetEmote(emote.Trim());
             if (e is null)
             {
                 await RespondAsync("Please pass a valid emote/emoji.");
+                return;
             }
             var guilds = _services.GetRequiredService<GuildTracker>();
             var guild = guilds.LookupGuild(Context.Guild);
             var message = guild.GetMessage(msgId) ?? guild.TrackMessage(msgId);
-            if (message.RoleButtons.ContainsKey(e.Name))
+            if (await message.AddRoleButton(msg, e, role))
             {
-                await RespondAsync("That reaction is already assigned. Please remove it before reassigning.");
+                await RespondAsync($"Reaction role for {e} successfully added!");
                 return;
             }
-            message.RoleButtons.Add(e.Name, role.Id);
-            await RespondAsync($"Reaction role for {e} successfully added!");
+            await RespondAsync("That reaction is already assigned. Please remove it before reassigning.");
         }
 
         [EnabledInDm(false)]
         [RequireOwner]
         [SlashCommand("remove-rr", "Removes a reaction role to a message")]
-        public async Task RemoveRR([Summary(description: "tracked message ID")] string messageId,
-                               [Summary(description: "the emote/emoji to remove")] string emote)
+        public async Task RemoveRR([Summary(description: "the channel the message is in")] ITextChannel channel,
+                                   [Summary(description: "tracked message ID")] string messageId,
+                                   [Summary(description: "the emote/emoji to remove")] string emote)
         {
             ulong msgId;
             if (!ulong.TryParse(messageId, out msgId))
@@ -65,15 +74,22 @@ namespace EmuBot.Modules
                 await RespondAsync("Please pass a valid integer as the message ID.");
                 return;
             }
+            IMessage? msg = await channel.GetMessageAsync(msgId);
+            if (msg is null)
+            {
+                await RespondAsync("Could not find that message in the specified channel!");
+                return;
+            }
             IEmote? e = GetEmote(emote.Trim());
             if (e is null)
             {
                 await RespondAsync("Please pass a valid emote/emoji.");
+                return;
             }
             var guilds = _services.GetRequiredService<GuildTracker>();
             var guild = guilds.LookupGuild(Context.Guild);
             var message = guild.GetMessage(msgId) ?? guild.TrackMessage(msgId);
-            if (message.RoleButtons.Remove(e.Name))
+            if (await message.RemoveRoleButton(msg, e))
             {
                 await RespondAsync($"Reaction role for {e} successfully removed!");
                 return;

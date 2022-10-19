@@ -28,6 +28,28 @@ namespace EmuBot.Models
         {
         }
 
+        public async Task<bool> AddRoleButton(IMessage message, IEmote emote, IRole role)
+        {
+            if (!RoleButtons.ContainsKey(emote.Name))
+            {
+                RoleButtons.Add(emote.Name, role.Id);
+                await message.AddReactionAsync(emote);
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<bool> RemoveRoleButton(IMessage message, IEmote emote)
+        {
+            if (RoleButtons.Remove(emote.Name))
+            {
+                var user = _services.GetRequiredService<DiscordSocketClient>().CurrentUser;
+                await message.RemoveReactionAsync(emote, user);
+                return true;
+            }
+            return false;
+        }
+
         public async Task ProcessReactionAdd(IEmote emote, IUser user)
         {
             if (user is not IGuildUser guildUser) return;
