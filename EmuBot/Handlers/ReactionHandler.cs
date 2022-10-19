@@ -10,11 +10,10 @@ using EmuBot.Models;
 
 namespace EmuBot.Handlers
 {
-    public class ReactionHandler
+    public abstract class ReactionHandler
     {
-
-        private readonly IServiceProvider _services;
-        private readonly DiscordSocketClient _client;
+        protected readonly IServiceProvider _services;
+        protected readonly DiscordSocketClient _client;
 
         public ReactionHandler(IServiceProvider services, DiscordSocketClient client)
         {
@@ -22,13 +21,13 @@ namespace EmuBot.Handlers
             _client = client;
         }
 
-        public Task Initialize()
-        {
-            _client.ReactionAdded += HandleReactionAsync;
-            return Task.CompletedTask;
-        }
+        public abstract Task Initialize();
 
-        private async Task HandleReactionAsync(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
+        protected async Task ProcessReactionRaw(
+            Cacheable<IUserMessage, ulong> message,
+            Cacheable<IMessageChannel, ulong> channel,
+            SocketReaction reaction,
+            bool add)
         {
             if (!reaction.User.IsSpecified) return;
             if (reaction.User.Value.IsBot) return;
@@ -40,9 +39,12 @@ namespace EmuBot.Handlers
             GuildInfo gi = gt.LookupGuild(guildChannel.Guild);
             TrackedMessage? tm = gi.GetMessage(reactionMsg.Id);
             if (tm is not null)
-                await tm.ProcessReaction(reaction.Emote, reaction.User.Value);
-
-            return;
+            {
+                if (add)
+                    await tm.ProcessReactionAdd(reaction.Emote, reaction.User.Value);
+                else
+                    await tm.ProcessReactionRemove(reaction.Emote, reaction.User.Value);
+            }
         }
 
     }

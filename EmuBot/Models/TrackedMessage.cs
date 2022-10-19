@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EmuBot.Models
 {
@@ -26,11 +28,18 @@ namespace EmuBot.Models
         {
         }
 
-        public async Task ProcessReaction(IEmote emote, IUser user)
+        public async Task ProcessReactionAdd(IEmote emote, IUser user)
         {
             if (user is not IGuildUser guildUser) return;
             if (!RoleButtons.ContainsKey(emote.Name)) return;
             await guildUser.AddRoleAsync(RoleButtons[emote.Name]);
+        }
+
+        public async Task ProcessReactionRemove(IEmote emote, IUser user)
+        {
+            if (user is not IGuildUser guildUser) return;
+            if (!RoleButtons.ContainsKey(emote.Name)) return;
+            await guildUser.RemoveRoleAsync(RoleButtons[emote.Name]);
         }
         
     }

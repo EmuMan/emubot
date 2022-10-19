@@ -49,7 +49,8 @@ namespace EmuBot
                 .AddSingleton<TrackedMessage>()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<InteractionService>()
-                .AddSingleton<ReactionHandler>()
+                .AddSingleton<ReactionAddedHandler>()
+                .AddSingleton<ReactionRemovedHandler>()
                 .AddSingleton<InteractionHandler>()
                 .BuildServiceProvider();
         }
@@ -61,7 +62,8 @@ namespace EmuBot
             client.Log += Log;
             client.Ready += AsyncOnReady;
 
-            await _services.GetRequiredService<ReactionHandler>().Initialize();
+            await _services.GetRequiredService<ReactionAddedHandler>().Initialize();
+            await _services.GetRequiredService<ReactionRemovedHandler>().Initialize();
             await _services.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             await client.LoginAsync(TokenType.Bot, _configuration["discord_token"]);
