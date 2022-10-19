@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using EmuBot.Serialization;
 
 namespace EmuBot.Models
 {
@@ -17,8 +18,8 @@ namespace EmuBot.Models
 
         public Dictionary<ulong, GuildInfo> Guilds { get; private set; } = new();
 
-        private JsonSerializerOptions _serializeOptions;
-        private JsonSerializerOptions _deserializeOptions;
+        private readonly JsonSerializerOptions _serializeOptions;
+        private readonly JsonSerializerOptions _deserializeOptions;
 
         public GuildTracker(IServiceProvider services)
         {
@@ -31,14 +32,14 @@ namespace EmuBot.Models
                 {
                     new GuildTrackerJsonConverter(_services),
                     new GuildInfoJsonConverter(_services),
-                    new UserInfoJsonConverter(_services)
+                    new TrackedMessageJsonConverter(_services)
                 }
             };
 
             _deserializeOptions = new JsonSerializerOptions();
             _deserializeOptions.Converters.Add(new GuildTrackerJsonConverter(_services));
             _deserializeOptions.Converters.Add(new GuildInfoJsonConverter(_services));
-            _deserializeOptions.Converters.Add(new UserInfoJsonConverter(_services));
+            _deserializeOptions.Converters.Add(new TrackedMessageJsonConverter(_services));
         }
 
         public GuildTracker(Dictionary<ulong, GuildInfo> guilds, IServiceProvider services) : this(services)
@@ -63,7 +64,7 @@ namespace EmuBot.Models
             var deserializeOptions = new JsonSerializerOptions();
             deserializeOptions.Converters.Add(new GuildTrackerJsonConverter(_services));
             deserializeOptions.Converters.Add(new GuildInfoJsonConverter(_services));
-            deserializeOptions.Converters.Add(new UserInfoJsonConverter(_services));
+            deserializeOptions.Converters.Add(new TrackedMessageJsonConverter(_services));
 
             // deserialize and check for failure
             GuildTracker? guildTracker = JsonSerializer.Deserialize<GuildTracker>(jsonString, deserializeOptions);
@@ -88,17 +89,6 @@ namespace EmuBot.Models
             {
                 await SaveToFile("data.json");
                 await Task.Delay(10 * 1000);
-            }
-        }
-
-        public void ResetDailies()
-        {
-            foreach (var guild in Guilds.Values)
-            {
-                foreach (var user in guild.Users.Values)
-                {
-                    user.HasClaimedDaily = false;
-                }
             }
         }
 

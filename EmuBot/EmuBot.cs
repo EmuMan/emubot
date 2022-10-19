@@ -27,7 +27,8 @@ namespace EmuBot
                              GatewayIntents.GuildMembers |
                              GatewayIntents.GuildEmojis |
                              GatewayIntents.GuildMessages |
-                             GatewayIntents.DirectMessages,
+                             GatewayIntents.DirectMessages |
+                             GatewayIntents.GuildMessageReactions,
             AlwaysDownloadUsers = true,
             MessageCacheSize = 1024,
         };
@@ -35,7 +36,7 @@ namespace EmuBot
         public EmuBot()
         {
             _configuration = new ConfigurationBuilder()
-                .AddJsonFile("cornfig.json", false, false)
+                .AddJsonFile("config.json", false, false)
                 .Build();
 
             _services = new ServiceCollection()
@@ -49,6 +50,7 @@ namespace EmuBot
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<InteractionService>()
                 .AddSingleton<ReactionHandler>()
+                .AddSingleton<InteractionHandler>()
                 .BuildServiceProvider();
         }
 
@@ -60,6 +62,7 @@ namespace EmuBot
             client.Ready += AsyncOnReady;
 
             await _services.GetRequiredService<ReactionHandler>().Initialize();
+            await _services.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             await client.LoginAsync(TokenType.Bot, _configuration["discord_token"]);
             await client.StartAsync();

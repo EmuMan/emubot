@@ -15,11 +15,16 @@ namespace EmuBot.Models
 
         private readonly IServiceProvider _services;
 
-        public GuildInfo(IGuild guild, IServiceProvider services)
+        public GuildInfo(IGuild guild, Dictionary<ulong, TrackedMessage> messages, IServiceProvider services)
         {
             Guild = guild;
-            Messages = new();
+            Messages = messages;
             _services = services;
+        }
+
+        public GuildInfo(IGuild guild, IServiceProvider services)
+            : this(guild, new(), services)
+        {
         }
 
         public TrackedMessage? GetMessage(ulong messageId)
@@ -32,7 +37,7 @@ namespace EmuBot.Models
 
         public TrackedMessage TrackMessage(ulong messageId)
         {
-            TrackedMessage tm = new(this, messageId, _services);
+            TrackedMessage tm = new(messageId, _services);
             Messages.Add(messageId, tm);
             return tm;
         }
