@@ -43,11 +43,7 @@ namespace EmuBot.Handlers
 
         private async Task ReadyAsync()
         {
-#if DEBUG
             await _handler.RegisterCommandsToGuildAsync(_configuration.GetValue<ulong>("guild"), true);
-#else
-            await _handler.RegisterCommandsGloballyAsync();
-#endif
         }
 
         private async Task HandleInteraction(SocketInteraction interaction)
