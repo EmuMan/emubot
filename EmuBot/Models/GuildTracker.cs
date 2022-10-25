@@ -78,9 +78,13 @@ namespace EmuBot.Models
 
         public async Task SaveToFile(string fileName)
         {
-            using FileStream createStream = File.Create(fileName);
-            await JsonSerializer.SerializeAsync(createStream, this, _serializeOptions);
-            await createStream.DisposeAsync();
+            var newFileName = fileName + ".new";
+            await using (FileStream createStream = File.Create(newFileName))
+                await JsonSerializer.SerializeAsync(createStream, this, _serializeOptions);
+
+            if (File.Exists(fileName))
+                File.Delete(fileName);
+            File.Move(newFileName, fileName);
         }
 
         public async Task StartSaveLoop()
