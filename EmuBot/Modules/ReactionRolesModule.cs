@@ -44,7 +44,7 @@ namespace EmuBot.Modules
                 await RespondAsync("Could not find that message in the specified channel!");
                 return;
             }
-            IEmote? e = GetEmote(emote.Trim());
+            IEmote? e = Utilities.GetEmote(emote.Trim());
             if (e is null)
             {
                 await RespondAsync("Please pass a valid emote/emoji.");
@@ -80,7 +80,7 @@ namespace EmuBot.Modules
                 await RespondAsync("Could not find that message in the specified channel!");
                 return;
             }
-            IEmote? e = GetEmote(emote.Trim());
+            IEmote? e = Utilities.GetEmote(emote.Trim());
             if (e is null)
             {
                 await RespondAsync("Please pass a valid emote/emoji.");
@@ -97,15 +97,34 @@ namespace EmuBot.Modules
             await RespondAsync($"There is no reaction role for {e} on that message.");
         }
 
-        private IEmote? GetEmote(string emoteName)
+        [EnabledInDm(false)]
+        [RequireOwner]
+        [SlashCommand("clear-msg", "Removes all the reaction roles from a message")]
+        public async Task RemoveAll([Summary(description: "the channel the message is in")] ITextChannel channel,
+                                   [Summary(description: "tracked message ID")] string messageId)
         {
-            Emote emote;
-            Emoji emoji;
-            if (Emote.TryParse(emoteName, out emote))
-                return emote;
-            if (Emoji.TryParse(emoteName, out emoji))
-                return emoji;
-            return null;
+            ulong msgId;
+            if (!ulong.TryParse(messageId, out msgId))
+            {
+                await RespondAsync("Please pass a valid integer as the message ID.");
+                return;
+            }
+            IMessage? msg = await channel.GetMessageAsync(msgId);
+            if (msg is null)
+            {
+                await RespondAsync("Could not find that message in the specified channel!");
+                return;
+            }
+            var guilds = _services.GetRequiredService<GuildTracker>();
+            var guild = guilds.LookupGuild(Context.Guild);
+            var message = guild.GetMessage(msgId) ?? guild.TrackMessage(msgId);
+            if (message.RoleButtons.Count == 0)
+                await RespondAsync("That message does not have any reaction roles added.");
+            else
+            {
+                await message.RemoveAllRoleButtons(msg);
+                await RespondAsync($"All reaction roles removed from message!");
+            }
         }
 
     }

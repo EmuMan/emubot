@@ -49,6 +49,21 @@ namespace EmuBot.Models
             }
             return false;
         }
+        
+        public async Task RemoveAllRoleButtons(IMessage message)
+        {
+            IEmote? emote;
+            var user = _services.GetRequiredService<DiscordSocketClient>().CurrentUser;
+            foreach (var emoteName in RoleButtons.Keys)
+            {
+                emote = Utilities.GetEmote(emoteName);
+                RoleButtons.Remove(emoteName);
+                if (emote is not null)
+                {
+                    await message.RemoveReactionAsync(emote, user);
+                }
+            }
+        }
 
         public async Task ProcessReactionAdd(IEmote emote, IUser user)
         {
