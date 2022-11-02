@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using EmuBot.Models;
 using EmuBot.Handlers;
+using EmuBot.Serialization;
 
 namespace EmuBot
 {
@@ -44,6 +45,7 @@ namespace EmuBot
                 .AddSingleton(_configuration)
                 .AddSingleton(_socketConfig)
                 .AddSingleton(new Random((int)DateTime.UtcNow.Ticks))
+                .AddSingleton<GuildTrackerSerializer>()
                 .AddSingleton<GuildTracker>()
                 .AddSingleton<GuildInfo>()
                 .AddSingleton<TrackedMessage>()
@@ -65,6 +67,8 @@ namespace EmuBot
             await _services.GetRequiredService<ReactionAddedHandler>().Initialize();
             await _services.GetRequiredService<ReactionRemovedHandler>().Initialize();
             await _services.GetRequiredService<InteractionHandler>().InitializeAsync();
+
+            _services.GetRequiredService<GuildTrackerSerializer>().Initialize("data.db");
 
             await client.LoginAsync(TokenType.Bot, _configuration["discord_token"]);
             await client.StartAsync();
@@ -93,12 +97,8 @@ namespace EmuBot
         private async Task AsyncOnReady()
         {
             var guildTracker = _services.GetRequiredService<GuildTracker>();
-            guildTracker.LoadFromFile("data.json");
+            await guildTracker.LoadFromSerializer();
             await Log(new LogMessage(LogSeverity.Info, "OnReady", "EmuBot has been created"));
-            // TODO: verify that this definitely works and properly broadcasts exceptions
-            _ = guildTracker.StartSaveLoop()
-                .ContinueWith(t => Log(new LogMessage(LogSeverity.Critical, "SaveLoop", "Save loop failed, aborting.", t.Exception)),
-                              TaskContinuationOptions.OnlyOnFaulted);
         }
 
     }

@@ -10,20 +10,22 @@ namespace EmuBot.Models
 {
     public class GuildInfo
     {
-        public IGuild Guild { get; init; }
+        public GuildTracker GuildTracker { get; init; }
+        public ulong GuildId { get; init; }
         public Dictionary<ulong, TrackedMessage> Messages { get; init; }
 
         private readonly IServiceProvider _services;
 
-        public GuildInfo(IGuild guild, Dictionary<ulong, TrackedMessage> messages, IServiceProvider services)
+        public GuildInfo(GuildTracker guildTracker, ulong guildId, Dictionary<ulong, TrackedMessage> messages, IServiceProvider services)
         {
-            Guild = guild;
+            GuildTracker = guildTracker;
+            GuildId = guildId;
             Messages = messages;
             _services = services;
         }
 
-        public GuildInfo(IGuild guild, IServiceProvider services)
-            : this(guild, new(), services)
+        public GuildInfo(GuildTracker guildTracker, ulong guildId, IServiceProvider services)
+            : this(guildTracker, guildId, new(), services)
         {
         }
 
@@ -35,11 +37,24 @@ namespace EmuBot.Models
                 return null;
         }
 
+        public TrackedMessage GetOrTrackMessage(ulong messageId)
+        {
+            if (Messages.ContainsKey(messageId))
+                return Messages[messageId];
+            else
+                return TrackMessage(messageId);
+        }
+
         public TrackedMessage TrackMessage(ulong messageId)
         {
-            TrackedMessage tm = new(messageId, _services);
+            TrackedMessage tm = new(this, messageId, _services);
             Messages.Add(messageId, tm);
             return tm;
+        }
+
+        public void RegisterExistingTrackedMessage(TrackedMessage tm)
+        {
+            Messages.Add(tm.MessageID, tm);
         }
 
     }
